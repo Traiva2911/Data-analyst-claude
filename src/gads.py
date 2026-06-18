@@ -82,6 +82,9 @@ DAILY_TREND_FIELDS = [
     "metrics.conversions",
 ]
 
+# Metriky vrácené v micros, ale BEZ sufixu _micros (Google Ads je dává * 1e6)
+MICROS_METRICS = ("average_cpc", "average_cpm", "average_cpv")
+
 
 def _to_python(value: Any) -> Any:
     """Převede hodnotu z proto-plus na čistý Python typ (enum -> název)."""
@@ -209,6 +212,21 @@ class GoogleAdsConnector:
             df = self._convert_micros(df)
         return df
 
+    def test_connection(self) -> List[str]:
+        """
+        Ověří přihlášení k API minimálním živým voláním.
+
+        Vrátí ID účtů, ke kterým má přihlášený uživatel přístup
+        (CustomerService.list_accessible_customers). Nevyžaduje customer_id,
+        takže izoluje problém s OAuth / developer tokenem od přístupu k účtu.
+        """
+        try:
+            service = self.client.get_service("CustomerService")
+            resource_names = service.list_accessible_customers().resource_names
+        except Exception as exc:  # GoogleAdsException i ostatní
+            raise RuntimeError(self._format_error(exc)) from exc
+        return [rn.split("/")[-1] for rn in resource_names]
+
     def _dated_report(
         self,
         resource: str,
@@ -297,12 +315,15 @@ class GoogleAdsConnector:
 
     @staticmethod
     def _convert_micros(df: pd.DataFrame) -> pd.DataFrame:
-        """Převede sloupce končící na _micros na reálnou měnu."""
+        """Převede micros sloupce na reálnou měnu (cost_micros -> cost, average_cpc...)."""
         rename = {}
         for col in df.columns:
+            leaf = col.split(".")[-1]
             if col.endswith("_micros"):
                 df[col] = pd.to_numeric(df[col], errors="coerce") / 1_000_000
                 rename[col] = col[: -len("_micros")]
+            elif leaf in MICROS_METRICS:
+                df[col] = pd.to_numeric(df[col], errors="coerce") / 1_000_000
         return df.rename(columns=rename)
 
     @staticmethod
@@ -345,11 +366,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "--by-date", action="store_true", help="Rozpad po dnech (jen u campaigns)"
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Jen ověří připojení (vypíše dostupné účty) a skončí",
+    )
     args = parser.parse_args()
 
     connector = GoogleAdsConnector(
         customer_id=args.customer_id, config_path=args.config
     )
+
+    if args.check:
+        try:
+            accounts = connector.test_connection()
+        except RuntimeError as exc:
+            print(f"✗ Připojení selhalo: {exc}")
+            raise SystemExit(1)
+        print(f"✓ Připojení OK. Dostupné účty ({len(accounts)}): {', '.join(accounts)}")
+        if connector.customer_id:
+            if connector.customer_id in accounts:
+                print(f"  Účet {connector.customer_id}: ✓ dostupný")
+            else:
+                print(
+                    f"  Účet {connector.customer_id}: ⚠ není v seznamu "
+                    "(zkontroluj login_customer_id nebo přístup k účtu)"
+                )
+        raise SystemExit(0)
+
     reports = {
         "campaigns": lambda: connector.fetch_campaign_performance(
             days=args.days, by_date=args.by_date

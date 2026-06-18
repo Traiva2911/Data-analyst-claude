@@ -137,6 +137,20 @@ class DataAnalyzer:
 
         print("="*60 + "\n")
 
+    def ai_insights(self, extra: str = None, **kwargs) -> str:
+        """
+        Pošle souhrn dat Claudovi a vrátí AI insighty + doporučení.
+
+        Vyžaduje ANTHROPIC_API_KEY (v .env nebo prostředí) a knihovnu anthropic.
+
+        Args:
+            extra: Volitelný doplňující kontext (např. "účet panopro, e-shop").
+            **kwargs: Předá se do ClaudeAnalyst (api_key, model).
+        """
+        from .ai import ClaudeAnalyst
+
+        return ClaudeAnalyst(**kwargs).insights(self.generate_summary(), extra=extra)
+
 
 if __name__ == "__main__":
     import sys

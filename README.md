@@ -62,7 +62,7 @@ takže se tokeny nikdy nedostanou do gitu):
 
 ```bash
 cp google-ads.yaml.example google-ads.yaml   # tokeny pro API
-cp .env.example .env                          # GOOGLE_ADS_CUSTOMER_ID
+cp .env.example .env                          # GOOGLE_ADS_CUSTOMER_ID + ANTHROPIC_API_KEY
 ```
 
 #### Vygenerování refresh_token
@@ -103,6 +103,9 @@ df = connector.search("SELECT campaign.name, metrics.clicks FROM campaign")
 Z příkazové řádky:
 
 ```bash
+# Nejdřív ověř připojení (minimální živé volání, vypíše dostupné účty)
+python -m src.gads --check
+
 # Stáhne kampaně a uloží do CSV + vytiskne report
 python -m src.gads --customer-id 123-456-7890 --days 30 --csv data/panopro.csv
 
@@ -113,12 +116,39 @@ python -m src.gads --report keywords --days 30
 > ⚠️ Ceny vrací Google Ads v *micros* (1 000 000 = 1 jednotka měny).
 > Konektor je automaticky převede (`cost_micros` → `cost`).
 
+## 🤖 AI insighty (Claude)
+
+Analyzovaná data umí komentovat přímo Claude — vrátí srozumitelné insighty
+a doporučení. Klíč dej do `.env` jako `ANTHROPIC_API_KEY` (je v `.gitignore`):
+
+```python
+from src import GoogleAdsConnector, DataAnalyzer
+
+# Z Google Ads dat:
+connector = GoogleAdsConnector(customer_id="123-456-7890")
+df = connector.fetch_campaign_performance(days=30)
+print(connector.to_analyzer(df, name="panopro").ai_insights(extra="e-shop"))
+
+# Nebo z jakéhokoli CSV:
+print(DataAnalyzer("data/panopro.csv").ai_insights())
+```
+
+Z příkazové řádky (CSV → analýza → AI insighty):
+
+```bash
+python -m src.ai data/panopro.csv
+```
+
+> 💡 Používá model `claude-opus-4-8` přes oficiální Anthropic SDK. Klíč nikdy
+> nedávej do gitu — patří jen do `.env`.
+
 ## 📁 Struktura projektu
 
 ```
 ├── src/
 │   ├── analyzer.py            # Hlavní analyzer pro data
 │   ├── gads.py               # Konektor na Google Ads API
+│   ├── ai.py                 # Claude AI insighty (Anthropic API)
 │   ├── generate_refresh_token.py  # OAuth2 refresh_token generátor
 │   └── utils.py              # Pomocné funkce
 ├── data/                     # Složka pro vaše CSV data
@@ -136,6 +166,7 @@ python -m src.gads --report keywords --days 30
 - **numpy** — numerické výpočty
 - **matplotlib** — vizualizace
 - **google-ads** — napojení na Google Ads API
+- **anthropic** — AI insighty přes Claude
 
 ## 📝 Příspěvky
 
