@@ -214,7 +214,7 @@ class GoogleAdsConnector:
 
     @staticmethod
     def _format_error(exc: Exception) -> str:
-        """Sestaví čitelné hlášku z chyby Google Ads API."""
+        """Sestaví čitelnou hlášku z chyby Google Ads API."""
         request_id = getattr(exc, "request_id", None)
         failure = getattr(exc, "failure", None)
         if failure is not None:
