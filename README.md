@@ -40,16 +40,72 @@ python -m src.analyzer data/sample.csv
 python -m src.analyzer data/*.csv
 ```
 
+## 📣 Napojení na Google Ads
+
+Projekt umí stáhnout data přímo z Google Ads API (např. z účtu **panopro**)
+a rovnou je zanalyzovat.
+
+### 1. Co budeš potřebovat
+
+| Údaj | Kde ho získáš |
+|------|---------------|
+| **Developer token** | Google Ads → nástroje → API Center (na MCC účtu) |
+| **OAuth2 client_id + client_secret** | Google Cloud Console → Credentials → OAuth client (typ *Desktop app*) |
+| **Refresh token** | Vygeneruješ OAuth2 flow ([návod Google](https://developers.google.com/google-ads/api/docs/oauth/cloud-project)) |
+| **login_customer_id** | ID správcovského (MCC) účtu, bez pomlček |
+| **customer_id** | ID účtu *panopro*, ze kterého stahuješ data |
+
+### 2. Konfigurace
+
+Zkopíruj šablony a doplň své hodnoty (oba soubory jsou v `.gitignore`,
+takže se tokeny nikdy nedostanou do gitu):
+
+```bash
+cp google-ads.yaml.example google-ads.yaml   # tokeny pro API
+cp .env.example .env                          # GOOGLE_ADS_CUSTOMER_ID
+```
+
+### 3. Použití
+
+```python
+from src import GoogleAdsConnector
+
+# Konfigurace se načte z google-ads.yaml; customer_id z .env nebo přímo:
+connector = GoogleAdsConnector(customer_id="123-456-7890")
+
+# Výkon kampaní za posledních 30 dní jako pandas DataFrame
+df = connector.fetch_campaign_performance(days=30)
+
+# Rovnou souhrnná analýza (statistiky, outliers, chybějící hodnoty)
+connector.to_analyzer(df, name="panopro").print_report()
+
+# Nebo libovolný vlastní GAQL dotaz
+df = connector.search("SELECT campaign.name, metrics.clicks FROM campaign")
+```
+
+Z příkazové řádky:
+
+```bash
+# Stáhne kampaně a uloží do CSV + vytiskne report
+python -m src.gads --customer-id 123-456-7890 --days 30 --csv data/panopro.csv
+```
+
+> ⚠️ Ceny vrací Google Ads v *micros* (1 000 000 = 1 jednotka měny).
+> Konektor je automaticky převede (`cost_micros` → `cost`).
+
 ## 📁 Struktura projektu
 
 ```
 ├── src/
-│   ├── analyzer.py       # Hlavní analyzer pro data
-│   └── utils.py          # Pomocné funkce
-├── data/                 # Složka pro vaše CSV data
-├── reports/              # Vygenerované reporty
-├── requirements.txt      # Python závislosti
-└── README.md             # Tato dokumentace
+│   ├── analyzer.py            # Hlavní analyzer pro data
+│   ├── gads.py               # Konektor na Google Ads API
+│   └── utils.py              # Pomocné funkce
+├── data/                     # Složka pro vaše CSV data
+├── reports/                  # Vygenerované reporty
+├── google-ads.yaml.example   # Šablona konfigurace Google Ads
+├── .env.example              # Šablona proměnných prostředí
+├── requirements.txt          # Python závislosti
+└── README.md                 # Tato dokumentace
 ```
 
 ## 🛠️ Technologie
@@ -58,6 +114,7 @@ python -m src.analyzer data/*.csv
 - **pandas** — manipulace s daty
 - **numpy** — numerické výpočty
 - **matplotlib** — vizualizace
+- **google-ads** — napojení na Google Ads API
 
 ## 📝 Příspěvky
 
