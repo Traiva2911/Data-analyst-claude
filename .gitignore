@@ -43,3 +43,7 @@ logs/
 # Environment variables
 .env
 .env.local
+
+# Google Ads konfigurace (obsahuje tokeny - NIKDY necommitovat!)
+google-ads.yaml
+*.credentials.json

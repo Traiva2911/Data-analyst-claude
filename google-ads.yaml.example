@@ -1,0 +1,20 @@
+# ŠABLONA konfigurace Google Ads API.
+#
+# 1) Zkopíruj tento soubor na "google-ads.yaml" (ten je v .gitignore):
+#       cp google-ads.yaml.example google-ads.yaml
+# 2) Doplň své skutečné hodnoty.
+# 3) NIKDY necommituj vyplněný google-ads.yaml do gitu!
+
+# Developer token z Google Ads (API Center v MCC účtu).
+developer_token: INSERT_DEVELOPER_TOKEN_HERE
+
+# OAuth2 credentials z Google Cloud Console (typ "Desktop app").
+client_id: INSERT_OAUTH2_CLIENT_ID_HERE
+client_secret: INSERT_OAUTH2_CLIENT_SECRET_HERE
+refresh_token: INSERT_OAUTH2_REFRESH_TOKEN_HERE
+
+# ID správcovského (MCC) účtu BEZ pomlček. Vynech, pokud MCC nepoužíváš.
+login_customer_id: INSERT_MANAGER_CUSTOMER_ID_HERE
+
+# Doporučeno nechat True (vrací proto-plus objekty).
+use_proto_plus: True
