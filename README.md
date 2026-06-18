@@ -103,6 +103,9 @@ df = connector.search("SELECT campaign.name, metrics.clicks FROM campaign")
 Z příkazové řádky:
 
 ```bash
+# Nejdřív ověř připojení (minimální živé volání, vypíše dostupné účty)
+python -m src.gads --check
+
 # Stáhne kampaně a uloží do CSV + vytiskne report
 python -m src.gads --customer-id 123-456-7890 --days 30 --csv data/panopro.csv
 
