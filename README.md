@@ -51,7 +51,7 @@ a rovnou je zanalyzovat.
 |------|---------------|
 | **Developer token** | Google Ads → nástroje → API Center (na MCC účtu) |
 | **OAuth2 client_id + client_secret** | Google Cloud Console → Credentials → OAuth client (typ *Desktop app*) |
-| **Refresh token** | Vygeneruješ OAuth2 flow ([návod Google](https://developers.google.com/google-ads/api/docs/oauth/cloud-project)) |
+| **Refresh token** | Vygeneruje přiložený skript `python -m src.generate_refresh_token` (viz níže) |
 | **login_customer_id** | ID správcovského (MCC) účtu, bez pomlček |
 | **customer_id** | ID účtu *panopro*, ze kterého stahuješ data |
 
@@ -64,6 +64,18 @@ takže se tokeny nikdy nedostanou do gitu):
 cp google-ads.yaml.example google-ads.yaml   # tokeny pro API
 cp .env.example .env                          # GOOGLE_ADS_CUSTOMER_ID
 ```
+
+#### Vygenerování refresh_token
+
+Do `google-ads.yaml` vyplň `developer_token`, `client_id` a `client_secret`,
+pak spusť skript — otevře prohlížeč, přihlásíš se Google účtem s přístupem
+k účtu *panopro* a token se rovnou zapíše do `google-ads.yaml`:
+
+```bash
+python -m src.generate_refresh_token --update-yaml
+```
+
+> 💡 OAuth client musí být v Google Cloud Console typu **Desktop app**.
 
 ### 3. Použití
 
@@ -99,6 +111,7 @@ python -m src.gads --customer-id 123-456-7890 --days 30 --csv data/panopro.csv
 ├── src/
 │   ├── analyzer.py            # Hlavní analyzer pro data
 │   ├── gads.py               # Konektor na Google Ads API
+│   ├── generate_refresh_token.py  # OAuth2 refresh_token generátor
 │   └── utils.py              # Pomocné funkce
 ├── data/                     # Složka pro vaše CSV data
 ├── reports/                  # Vygenerované reporty
