@@ -82,6 +82,9 @@ DAILY_TREND_FIELDS = [
     "metrics.conversions",
 ]
 
+# Metriky vrácené v micros, ale BEZ sufixu _micros (Google Ads je dává * 1e6)
+MICROS_METRICS = ("average_cpc", "average_cpm", "average_cpv")
+
 
 def _to_python(value: Any) -> Any:
     """Převede hodnotu z proto-plus na čistý Python typ (enum -> název)."""
@@ -297,12 +300,15 @@ class GoogleAdsConnector:
 
     @staticmethod
     def _convert_micros(df: pd.DataFrame) -> pd.DataFrame:
-        """Převede sloupce končící na _micros na reálnou měnu."""
+        """Převede micros sloupce na reálnou měnu (cost_micros -> cost, average_cpc...)."""
         rename = {}
         for col in df.columns:
+            leaf = col.split(".")[-1]
             if col.endswith("_micros"):
                 df[col] = pd.to_numeric(df[col], errors="coerce") / 1_000_000
                 rename[col] = col[: -len("_micros")]
+            elif leaf in MICROS_METRICS:
+                df[col] = pd.to_numeric(df[col], errors="coerce") / 1_000_000
         return df.rename(columns=rename)
 
     @staticmethod
