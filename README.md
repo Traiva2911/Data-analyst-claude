@@ -88,6 +88,11 @@ connector = GoogleAdsConnector(customer_id="123-456-7890")
 # Výkon kampaní za posledních 30 dní jako pandas DataFrame
 df = connector.fetch_campaign_performance(days=30)
 
+# Další hotové reporty:
+df = connector.fetch_keyword_performance(days=30)   # klíčová slova
+df = connector.fetch_ad_performance(days=30)        # inzeráty
+df = connector.fetch_daily_trends(days=30)          # denní trend (časová řada)
+
 # Rovnou souhrnná analýza (statistiky, outliers, chybějící hodnoty)
 connector.to_analyzer(df, name="panopro").print_report()
 
@@ -100,6 +105,9 @@ Z příkazové řádky:
 ```bash
 # Stáhne kampaně a uloží do CSV + vytiskne report
 python -m src.gads --customer-id 123-456-7890 --days 30 --csv data/panopro.csv
+
+# Jiný report: campaigns (default) | keywords | ads | trends
+python -m src.gads --report keywords --days 30
 ```
 
 > ⚠️ Ceny vrací Google Ads v *micros* (1 000 000 = 1 jednotka měny).
