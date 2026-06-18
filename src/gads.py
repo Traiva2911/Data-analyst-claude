@@ -46,6 +46,42 @@ CAMPAIGN_PERFORMANCE_FIELDS = [
     "metrics.conversions_value",
 ]
 
+# Report výkonu klíčových slov
+KEYWORD_PERFORMANCE_FIELDS = [
+    "campaign.name",
+    "ad_group.name",
+    "ad_group_criterion.keyword.text",
+    "ad_group_criterion.keyword.match_type",
+    "metrics.impressions",
+    "metrics.clicks",
+    "metrics.ctr",
+    "metrics.average_cpc",
+    "metrics.cost_micros",
+    "metrics.conversions",
+]
+
+# Report výkonu jednotlivých inzerátů
+AD_PERFORMANCE_FIELDS = [
+    "campaign.name",
+    "ad_group.name",
+    "ad_group_ad.ad.id",
+    "ad_group_ad.ad.type",
+    "ad_group_ad.status",
+    "metrics.impressions",
+    "metrics.clicks",
+    "metrics.ctr",
+    "metrics.cost_micros",
+    "metrics.conversions",
+]
+
+# Denní trend (souhrn celého účtu po dnech)
+DAILY_TREND_FIELDS = [
+    "metrics.impressions",
+    "metrics.clicks",
+    "metrics.cost_micros",
+    "metrics.conversions",
+]
+
 
 def _to_python(value: Any) -> Any:
     """Převede hodnotu z proto-plus na čistý Python typ (enum -> název)."""
@@ -173,6 +209,32 @@ class GoogleAdsConnector:
             df = self._convert_micros(df)
         return df
 
+    def _dated_report(
+        self,
+        resource: str,
+        fields: List[str],
+        days: int,
+        customer_id: Optional[str],
+        order_by: Optional[str] = None,
+        by_date: bool = False,
+    ) -> pd.DataFrame:
+        """Sestaví a spustí GAQL report za posledních N dní."""
+        end = date.today()
+        start = end - timedelta(days=days)
+
+        select_fields = list(fields)
+        if by_date:
+            select_fields.insert(0, "segments.date")
+
+        query = (
+            f"SELECT {', '.join(select_fields)} "
+            f"FROM {resource} "
+            f"WHERE segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'"
+        )
+        if order_by:
+            query += f" ORDER BY {order_by}"
+        return self.search(query, customer_id=customer_id)
+
     def fetch_campaign_performance(
         self,
         days: int = 30,
@@ -187,20 +249,51 @@ class GoogleAdsConnector:
             customer_id: ID účtu (jinak self.customer_id).
             by_date: True = řádky rozpadnuté po dnech, False = souhrn za období.
         """
-        end = date.today()
-        start = end - timedelta(days=days)
-
-        fields = list(CAMPAIGN_PERFORMANCE_FIELDS)
-        if by_date:
-            fields.insert(0, "segments.date")
-
-        query = (
-            f"SELECT {', '.join(fields)} "
-            "FROM campaign "
-            f"WHERE segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}' "
-            "ORDER BY metrics.cost_micros DESC"
+        return self._dated_report(
+            "campaign",
+            CAMPAIGN_PERFORMANCE_FIELDS,
+            days,
+            customer_id,
+            order_by="metrics.cost_micros DESC",
+            by_date=by_date,
         )
-        return self.search(query, customer_id=customer_id)
+
+    def fetch_keyword_performance(
+        self, days: int = 30, customer_id: Optional[str] = None
+    ) -> pd.DataFrame:
+        """Stáhne výkon klíčových slov za posledních N dní."""
+        return self._dated_report(
+            "keyword_view",
+            KEYWORD_PERFORMANCE_FIELDS,
+            days,
+            customer_id,
+            order_by="metrics.cost_micros DESC",
+        )
+
+    def fetch_ad_performance(
+        self, days: int = 30, customer_id: Optional[str] = None
+    ) -> pd.DataFrame:
+        """Stáhne výkon jednotlivých inzerátů za posledních N dní."""
+        return self._dated_report(
+            "ad_group_ad",
+            AD_PERFORMANCE_FIELDS,
+            days,
+            customer_id,
+            order_by="metrics.cost_micros DESC",
+        )
+
+    def fetch_daily_trends(
+        self, days: int = 30, customer_id: Optional[str] = None
+    ) -> pd.DataFrame:
+        """Stáhne denní souhrn celého účtu (časová řada) za posledních N dní."""
+        return self._dated_report(
+            "customer",
+            DAILY_TREND_FIELDS,
+            days,
+            customer_id,
+            order_by="segments.date",
+            by_date=True,
+        )
 
     @staticmethod
     def _convert_micros(df: pd.DataFrame) -> pd.DataFrame:
@@ -244,15 +337,29 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="Cesta ke google-ads.yaml")
     parser.add_argument("--csv", help="Kam uložit výsledek jako CSV")
     parser.add_argument(
-        "--by-date", action="store_true", help="Rozpad po dnech místo souhrnu"
+        "--report",
+        choices=["campaigns", "keywords", "ads", "trends"],
+        default="campaigns",
+        help="Typ reportu (default campaigns)",
+    )
+    parser.add_argument(
+        "--by-date", action="store_true", help="Rozpad po dnech (jen u campaigns)"
     )
     args = parser.parse_args()
 
     connector = GoogleAdsConnector(
         customer_id=args.customer_id, config_path=args.config
     )
-    data = connector.fetch_campaign_performance(days=args.days, by_date=args.by_date)
-    print(f"✓ Staženo {len(data)} řádků z Google Ads")
+    reports = {
+        "campaigns": lambda: connector.fetch_campaign_performance(
+            days=args.days, by_date=args.by_date
+        ),
+        "keywords": lambda: connector.fetch_keyword_performance(days=args.days),
+        "ads": lambda: connector.fetch_ad_performance(days=args.days),
+        "trends": lambda: connector.fetch_daily_trends(days=args.days),
+    }
+    data = reports[args.report]()
+    print(f"✓ Staženo {len(data)} řádků z Google Ads ({args.report})")
 
     if args.csv:
         data.to_csv(args.csv, index=False, encoding="utf-8")
