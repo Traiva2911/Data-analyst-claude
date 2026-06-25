@@ -1,7 +1,10 @@
 """Data Analyst Claude - Inteligentní data analysis tool"""
 
 from .analyzer import DataAnalyzer
-from .gads import GoogleAdsConnector
+try:
+    from .gads import GoogleAdsConnector
+except ImportError:  # google-ads je volitelná závislost
+    GoogleAdsConnector = None
 from .ai import ClaudeAnalyst
 from .utils import format_statistics, detect_anomalies
 
