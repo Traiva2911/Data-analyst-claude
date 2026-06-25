@@ -142,6 +142,19 @@ python -m src.ai data/panopro.csv
 > 💡 Používá model `claude-opus-4-8` přes oficiální Anthropic SDK. Klíč nikdy
 > nedávej do gitu — patří jen do `.env`.
 
+## 📊 Interaktivní dashboard (Streamlit)
+
+Vizuální rozhraní v prohlížeči — nahraješ/vybereš CSV, uvidíš přehled,
+statistiky a grafy, a na jedno tlačítko k tomu Claude doplní AI insighty.
+
+```bash
+streamlit run src/dashboard.py
+```
+
+Otevře se v prohlížeči (typicky http://localhost:8501). V levém panelu nahraj
+CSV nebo vyber soubor ze složky `data/`. Pro AI insighty stačí mít
+`ANTHROPIC_API_KEY` v `.env`.
+
 ## 📁 Struktura projektu
 
 ```
@@ -149,6 +162,7 @@ python -m src.ai data/panopro.csv
 │   ├── analyzer.py            # Hlavní analyzer pro data
 │   ├── gads.py               # Konektor na Google Ads API
 │   ├── ai.py                 # Claude AI insighty (Anthropic API)
+│   ├── dashboard.py          # Interaktivní dashboard (Streamlit)
 │   ├── generate_refresh_token.py  # OAuth2 refresh_token generátor
 │   └── utils.py              # Pomocné funkce
 ├── data/                     # Složka pro vaše CSV data
@@ -167,6 +181,7 @@ python -m src.ai data/panopro.csv
 - **matplotlib** — vizualizace
 - **google-ads** — napojení na Google Ads API
 - **anthropic** — AI insighty přes Claude
+- **streamlit** — interaktivní dashboard
 
 ## 📝 Příspěvky
 
