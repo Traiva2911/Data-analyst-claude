@@ -7,6 +7,9 @@ Spuštění z kořene projektu:
 Funkce:
 - nahrání CSV nebo výběr ze složky data/
 - přehled dat, numerické statistiky a grafy
+- marketingová KPI (CTR, CPC, konverzní poměr, cena/konverze) + tabulka kampaní
+- vývoj v čase (když data obsahují datum)
+- export statistik (CSV) i AI insightů (.md)
 - AI insighty od Clauda na jedno tlačítko (vyžaduje ANTHROPIC_API_KEY v .env)
 """
 
@@ -27,6 +30,16 @@ from src.ai import ClaudeAnalyst  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 
+# Aliasy pro automatické rozpoznání marketingových sloupců (CZ i EN, i metrics.*)
+COL_GUESS = {
+    "Náklady": ["cost", "náklady", "naklady", "spend", "útrata", "utrata", "metrics.cost"],
+    "Prokliky": ["clicks", "prokliky", "kliknutí", "kliknuti", "metrics.clicks"],
+    "Imprese": ["impr", "imprese", "impressions", "zobrazení", "zobrazeni", "metrics.impressions"],
+    "Konverze": ["conversions", "konverze", "poptávky", "poptavky", "metrics.conversions"],
+    "Kampaň": ["campaign", "kampaň", "kampan", "campaign.name"],
+    "Datum": ["date", "datum", "day", "den", "segments.date"],
+}
+
 
 def load_csv(path_or_buffer) -> pd.DataFrame:
     """Načte CSV z cesty nebo z nahraného souboru."""
@@ -40,11 +53,41 @@ def list_data_csvs() -> list:
     return []
 
 
-def chart_data(df: pd.DataFrame, metric: str, dim: str):
-    """Připraví data pro sloupcový graf (metrika podle rozměru, nebo dle indexu)."""
-    if dim and dim != "(index)":
-        return df.groupby(dim)[metric].sum().sort_values(ascending=False).head(20)
-    return df[metric]
+def guess_col(df: pd.DataFrame, key: str):
+    """Tipne sloupec podle aliasů (přesná shoda > začíná na > obsahuje)."""
+    lower = {c.lower().strip(): c for c in df.columns}
+    aliases = COL_GUESS[key]
+    for a in aliases:
+        if a in lower:
+            return lower[a]
+    for c in df.columns:
+        cl = c.lower().strip()
+        if any(cl.startswith(a) or a in cl for a in aliases):
+            return c
+    return None
+
+
+def fmt(n, suffix: str = "") -> str:
+    """Číslo bez desetin s mezerou jako oddělovačem tisíců (1 234)."""
+    try:
+        return f"{n:,.0f}{suffix}".replace(",", " ")
+    except (ValueError, TypeError):
+        return "—"
+
+
+def fmt2(n, suffix: str = "") -> str:
+    """Číslo na 2 desetinná místa s mezerou u tisíců."""
+    try:
+        return f"{n:,.2f}{suffix}".replace(",", " ")
+    except (ValueError, TypeError):
+        return "—"
+
+
+def col_sum(df: pd.DataFrame, col):
+    """Součet číselného sloupce (nečíselné hodnoty ignoruje); None když sloupec není."""
+    if not col:
+        return None
+    return pd.to_numeric(df[col], errors="coerce").sum()
 
 
 def main():
@@ -52,7 +95,7 @@ def main():
         page_title="Data Analyst Claude", page_icon="📊", layout="wide"
     )
     st.title("📊 Data Analyst Claude")
-    st.caption("Analýza dat + AI insighty od Clauda")
+    st.caption("Analýza dat · marketingová KPI · AI insighty od Clauda")
 
     # --- Postranní panel: zdroj dat ---
     st.sidebar.header("Zdroj dat")
@@ -83,20 +126,100 @@ def main():
     # --- Přehled ---
     st.subheader(f"Přehled — {source_name}")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Řádky", summary["rows"])
+    c1.metric("Řádky", fmt(summary["rows"]))
     c2.metric("Sloupce", summary["columns"])
-    c3.metric("Chybějící hodnoty", int(sum(summary["missing_values"].values())))
-
+    c3.metric("Chybějící hodnoty", fmt(sum(summary["missing_values"].values())))
     with st.expander("Náhled dat"):
         st.dataframe(df.head(50))
 
-    # --- Numerické statistiky ---
+    # --- Mapování marketingových sloupců (auto-tip + možnost změnit) ---
+    st.sidebar.header("Marketingová KPI")
+    st.sidebar.caption("Přiřazení sloupců — automaticky natipnuto, lze přepnout.")
+    options = ["—"] + list(df.columns)
+
+    def picker(label):
+        guess = guess_col(df, label)
+        idx = options.index(guess) if guess in options else 0
+        sel = st.sidebar.selectbox(label, options, index=idx, key=f"map_{label}")
+        return None if sel == "—" else sel
+
+    col_cost = picker("Náklady")
+    col_clicks = picker("Prokliky")
+    col_impr = picker("Imprese")
+    col_conv = picker("Konverze")
+    col_campaign = picker("Kampaň")
+    col_date = picker("Datum")
+
+    total_cost = col_sum(df, col_cost)
+    total_clicks = col_sum(df, col_clicks)
+    total_impr = col_sum(df, col_impr)
+    total_conv = col_sum(df, col_conv)
+
+    # --- Marketingová KPI ---
+    if any(v is not None for v in (total_cost, total_clicks, total_impr, total_conv)):
+        st.subheader("Marketingová KPI")
+        row1 = st.columns(4)
+        if total_cost is not None:
+            row1[0].metric("Náklady", fmt(total_cost, " Kč"))
+        if total_clicks is not None:
+            row1[1].metric("Prokliky", fmt(total_clicks))
+        if total_impr is not None:
+            row1[2].metric("Imprese", fmt(total_impr))
+        if total_conv is not None:
+            row1[3].metric("Konverze", fmt2(total_conv))
+
+        row2 = st.columns(4)
+        if total_clicks and total_impr:
+            row2[0].metric("CTR", fmt2(100 * total_clicks / total_impr, " %"))
+        if total_cost is not None and total_clicks:
+            row2[1].metric("Prům. CPC", fmt2(total_cost / total_clicks, " Kč"))
+        if total_conv and total_clicks:
+            row2[2].metric("Konverzní poměr", fmt2(100 * total_conv / total_clicks, " %"))
+        if total_cost is not None and total_conv:
+            row2[3].metric("Cena/konverze", fmt2(total_cost / total_conv, " Kč"))
+
+    # --- Výkon podle kampaní ---
+    if col_campaign:
+        agg = {c: "sum" for c in (col_cost, col_clicks, col_impr, col_conv) if c}
+        if agg:
+            st.subheader("Výkon podle kampaní")
+            t = df.copy()
+            for c in agg:
+                t[c] = pd.to_numeric(t[c], errors="coerce")
+            tbl = t.groupby(col_campaign, dropna=False).agg(agg)
+            if col_cost and col_conv:
+                tbl["Cena/konverze"] = (tbl[col_cost] / tbl[col_conv]).round(2)
+            if col_clicks and col_impr:
+                tbl["CTR %"] = (100 * tbl[col_clicks] / tbl[col_impr]).round(2)
+            tbl = tbl.sort_values(col_cost or next(iter(agg)), ascending=False)
+            st.dataframe(tbl)
+
+    # --- Vývoj v čase ---
+    if col_date and (col_cost or col_conv or col_clicks):
+        st.subheader("Vývoj v čase")
+        t = df.copy()
+        t[col_date] = pd.to_datetime(t[col_date], errors="coerce")
+        metrics = [c for c in (col_cost, col_conv, col_clicks) if c]
+        for c in metrics:
+            t[c] = pd.to_numeric(t[c], errors="coerce")
+        ts = t.dropna(subset=[col_date]).groupby(col_date)[metrics].sum()
+        if not ts.empty:
+            st.line_chart(ts)
+
+    # --- Numerické statistiky (+ export) ---
     stats = analyzer.get_numeric_statistics()
     if stats:
         st.subheader("Numerické statistiky")
-        st.dataframe(pd.DataFrame(stats).T)
+        stats_df = pd.DataFrame(stats).T
+        st.dataframe(stats_df)
+        st.download_button(
+            "⬇️ Stáhnout statistiky (CSV)",
+            stats_df.to_csv().encode("utf-8"),
+            file_name=f"statistiky_{source_name}.csv",
+            mime="text/csv",
+        )
 
-    # --- Graf ---
+    # --- Obecný graf ---
     numeric_cols = df.select_dtypes("number").columns.tolist()
     cat_cols = [c for c in df.columns if c not in numeric_cols]
     if numeric_cols:
@@ -104,7 +227,11 @@ def main():
         col_m, col_d = st.columns(2)
         metric = col_m.selectbox("Metrika", numeric_cols)
         dim = col_d.selectbox("Rozměr (popisek)", ["(index)"] + cat_cols)
-        st.bar_chart(chart_data(df, metric, dim))
+        if dim != "(index)":
+            data = df.groupby(dim)[metric].sum().sort_values(ascending=False).head(20)
+        else:
+            data = df[metric]
+        st.bar_chart(data)
 
     # --- Outliers ---
     outliers = analyzer.detect_outliers()
@@ -113,7 +240,7 @@ def main():
             for col, idx in outliers.items():
                 st.write(f"**{col}**: {len(idx)} outlierů (řádky {idx[:10]}…)")
 
-    # --- AI insighty ---
+    # --- AI insighty (+ export) ---
     st.subheader("🤖 AI insighty (Claude)")
     extra = st.text_input(
         "Doplňující kontext (volitelně)",
@@ -122,11 +249,22 @@ def main():
     if st.button("Vygenerovat AI insighty", type="primary"):
         with st.spinner("Claude přemýšlí…"):
             try:
-                text = ClaudeAnalyst().insights(summary, extra=extra or None)
-                st.markdown(text)
+                st.session_state["insights"] = ClaudeAnalyst().insights(
+                    summary, extra=extra or None
+                )
             except Exception as exc:  # chybějící klíč i chyby API
+                st.session_state["insights"] = None
                 st.error(str(exc))
                 st.caption("Tip: klíč nastav v souboru .env jako ANTHROPIC_API_KEY.")
+
+    if st.session_state.get("insights"):
+        st.markdown(st.session_state["insights"])
+        st.download_button(
+            "⬇️ Stáhnout insighty (.md)",
+            st.session_state["insights"].encode("utf-8"),
+            file_name=f"insighty_{source_name}.md",
+            mime="text/markdown",
+        )
 
 
 if __name__ == "__main__":
