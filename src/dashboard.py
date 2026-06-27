@@ -10,9 +10,13 @@ Funkce:
 - marketingová KPI (CTR, CPC, konverzní poměr, cena/konverze) + tabulka kampaní
 - vývoj v čase (když data obsahují datum)
 - export statistik (CSV) i AI insightů (.md)
-- AI insighty od Clauda na jedno tlačítko (vyžaduje ANTHROPIC_API_KEY v .env)
+- AI insighty od Clauda na jedno tlačítko (vyžaduje ANTHROPIC_API_KEY)
+- responzivní zobrazení, připraveno na nasazení (Streamlit Community Cloud)
+
+Nasazení na web: viz DEPLOY.md.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -30,6 +34,14 @@ from src.ai import ClaudeAnalyst  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 
+# Na Streamlit Cloud se tajné hodnoty zadávají v Secrets. Přemostíme klíč do
+# prostředí, aby ho ClaudeAnalyst (čte ANTHROPIC_API_KEY z env) našel i v cloudu.
+try:
+    if "ANTHROPIC_API_KEY" in st.secrets:
+        os.environ.setdefault("ANTHROPIC_API_KEY", str(st.secrets["ANTHROPIC_API_KEY"]))
+except Exception:  # lokálně bez secrets.toml je to v pořádku
+    pass
+
 # Aliasy pro automatické rozpoznání marketingových sloupců (CZ i EN, i metrics.*)
 COL_GUESS = {
     "Náklady": ["cost", "náklady", "naklady", "spend", "útrata", "utrata", "metrics.cost"],
@@ -39,6 +51,31 @@ COL_GUESS = {
     "Kampaň": ["campaign", "kampaň", "kampan", "campaign.name"],
     "Datum": ["date", "datum", "day", "den", "segments.date"],
 }
+
+
+def check_password() -> bool:
+    """
+    Volitelná ochrana heslem pro veřejné nasazení.
+
+    Když je v Secrets nastaveno ``APP_PASSWORD``, vyžádá si heslo (jinak je
+    aplikace otevřená — vhodné pro lokální běh). Chrání API klíč i data při
+    veřejném nasazení.
+    """
+    try:
+        pw = st.secrets["APP_PASSWORD"] if "APP_PASSWORD" in st.secrets else None
+    except Exception:
+        pw = None
+    if not pw:
+        return True
+    if st.session_state.get("auth_ok"):
+        return True
+    entered = st.text_input("Heslo pro přístup", type="password")
+    if entered and entered == str(pw):
+        st.session_state["auth_ok"] = True
+        return True
+    if entered:
+        st.error("Špatné heslo.")
+    st.stop()
 
 
 def load_csv(path_or_buffer) -> pd.DataFrame:
@@ -92,10 +129,15 @@ def col_sum(df: pd.DataFrame, col):
 
 def main():
     st.set_page_config(
-        page_title="Data Analyst Claude", page_icon="📊", layout="wide"
+        page_title="Data Analyst Claude",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="auto",
     )
     st.title("📊 Data Analyst Claude")
     st.caption("Analýza dat · marketingová KPI · AI insighty od Clauda")
+
+    check_password()
 
     # --- Postranní panel: zdroj dat ---
     st.sidebar.header("Zdroj dat")
@@ -130,7 +172,7 @@ def main():
     c2.metric("Sloupce", summary["columns"])
     c3.metric("Chybějící hodnoty", fmt(sum(summary["missing_values"].values())))
     with st.expander("Náhled dat"):
-        st.dataframe(df.head(50))
+        st.dataframe(df.head(50), use_container_width=True)
 
     # --- Mapování marketingových sloupců (auto-tip + možnost změnit) ---
     st.sidebar.header("Marketingová KPI")
@@ -192,7 +234,7 @@ def main():
             if col_clicks and col_impr:
                 tbl["CTR %"] = (100 * tbl[col_clicks] / tbl[col_impr]).round(2)
             tbl = tbl.sort_values(col_cost or next(iter(agg)), ascending=False)
-            st.dataframe(tbl)
+            st.dataframe(tbl, use_container_width=True)
 
     # --- Vývoj v čase ---
     if col_date and (col_cost or col_conv or col_clicks):
@@ -204,19 +246,20 @@ def main():
             t[c] = pd.to_numeric(t[c], errors="coerce")
         ts = t.dropna(subset=[col_date]).groupby(col_date)[metrics].sum()
         if not ts.empty:
-            st.line_chart(ts)
+            st.line_chart(ts, use_container_width=True)
 
     # --- Numerické statistiky (+ export) ---
     stats = analyzer.get_numeric_statistics()
     if stats:
         st.subheader("Numerické statistiky")
         stats_df = pd.DataFrame(stats).T
-        st.dataframe(stats_df)
+        st.dataframe(stats_df, use_container_width=True)
         st.download_button(
             "⬇️ Stáhnout statistiky (CSV)",
             stats_df.to_csv().encode("utf-8"),
             file_name=f"statistiky_{source_name}.csv",
             mime="text/csv",
+            use_container_width=True,
         )
 
     # --- Obecný graf ---
@@ -231,7 +274,7 @@ def main():
             data = df.groupby(dim)[metric].sum().sort_values(ascending=False).head(20)
         else:
             data = df[metric]
-        st.bar_chart(data)
+        st.bar_chart(data, use_container_width=True)
 
     # --- Outliers ---
     outliers = analyzer.detect_outliers()
@@ -255,7 +298,7 @@ def main():
             except Exception as exc:  # chybějící klíč i chyby API
                 st.session_state["insights"] = None
                 st.error(str(exc))
-                st.caption("Tip: klíč nastav v souboru .env jako ANTHROPIC_API_KEY.")
+                st.caption("Tip: klíč nastav v .env (lokálně) nebo v Secrets (cloud).")
 
     if st.session_state.get("insights"):
         st.markdown(st.session_state["insights"])
@@ -264,6 +307,7 @@ def main():
             st.session_state["insights"].encode("utf-8"),
             file_name=f"insighty_{source_name}.md",
             mime="text/markdown",
+            use_container_width=True,
         )
 
 
