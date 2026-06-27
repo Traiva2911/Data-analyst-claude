@@ -134,6 +134,22 @@ def main():
         layout="wide",
         initial_sidebar_state="auto",
     )
+    # Lehký vizuální styl (čistší vzhled, hezčí KPI karty). Když se Streamlit
+    # interně změní, styl se prostě neaplikuje — nic se nerozbije.
+    st.markdown(
+        """
+        <style>
+          #MainMenu, footer {visibility: hidden;}
+          .block-container {padding-top: 2.5rem; padding-bottom: 3rem; max-width: 1300px;}
+          div[data-testid="stMetric"] {
+            background: #f7f9fc; border: 1px solid #e6e9ef;
+            border-radius: 12px; padding: 12px 16px;
+          }
+          div[data-testid="stMetricLabel"] p {opacity: .7; font-size: .85rem;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.title("📊 Data Analyst Claude")
     st.caption("Analýza dat · marketingová KPI · AI insighty od Clauda")
 
@@ -199,6 +215,7 @@ def main():
 
     # --- Marketingová KPI ---
     if any(v is not None for v in (total_cost, total_clicks, total_impr, total_conv)):
+        st.divider()
         st.subheader("Marketingová KPI")
         row1 = st.columns(4)
         if total_cost is not None:
@@ -224,6 +241,7 @@ def main():
     if col_campaign:
         agg = {c: "sum" for c in (col_cost, col_clicks, col_impr, col_conv) if c}
         if agg:
+            st.divider()
             st.subheader("Výkon podle kampaní")
             t = df.copy()
             for c in agg:
@@ -234,10 +252,29 @@ def main():
             if col_clicks and col_impr:
                 tbl["CTR %"] = (100 * tbl[col_clicks] / tbl[col_impr]).round(2)
             tbl = tbl.sort_values(col_cost or next(iter(agg)), ascending=False)
-            st.dataframe(tbl, use_container_width=True)
+            # Hezčí formát čísel (měna/procenta). Když starší Streamlit verze
+            # column_config nezná, spadne to do prostého zobrazení tabulky.
+            try:
+                cc = {}
+                if col_cost:
+                    cc[col_cost] = st.column_config.NumberColumn("Náklady", format="%.0f Kč")
+                if col_clicks:
+                    cc[col_clicks] = st.column_config.NumberColumn("Prokliky", format="%d")
+                if col_impr:
+                    cc[col_impr] = st.column_config.NumberColumn("Imprese", format="%d")
+                if col_conv:
+                    cc[col_conv] = st.column_config.NumberColumn("Konverze", format="%.2f")
+                if "Cena/konverze" in tbl.columns:
+                    cc["Cena/konverze"] = st.column_config.NumberColumn(format="%.2f Kč")
+                if "CTR %" in tbl.columns:
+                    cc["CTR %"] = st.column_config.NumberColumn(format="%.2f %%")
+                st.dataframe(tbl, use_container_width=True, column_config=cc or None)
+            except Exception:
+                st.dataframe(tbl, use_container_width=True)
 
     # --- Vývoj v čase ---
     if col_date and (col_cost or col_conv or col_clicks):
+        st.divider()
         st.subheader("Vývoj v čase")
         t = df.copy()
         t[col_date] = pd.to_datetime(t[col_date], errors="coerce")
@@ -251,6 +288,7 @@ def main():
     # --- Numerické statistiky (+ export) ---
     stats = analyzer.get_numeric_statistics()
     if stats:
+        st.divider()
         st.subheader("Numerické statistiky")
         stats_df = pd.DataFrame(stats).T
         st.dataframe(stats_df, use_container_width=True)
@@ -266,6 +304,7 @@ def main():
     numeric_cols = df.select_dtypes("number").columns.tolist()
     cat_cols = [c for c in df.columns if c not in numeric_cols]
     if numeric_cols:
+        st.divider()
         st.subheader("Graf")
         col_m, col_d = st.columns(2)
         metric = col_m.selectbox("Metrika", numeric_cols)
@@ -284,6 +323,7 @@ def main():
                 st.write(f"**{col}**: {len(idx)} outlierů (řádky {idx[:10]}…)")
 
     # --- AI insighty (+ export) ---
+    st.divider()
     st.subheader("🤖 AI insighty (Claude)")
     extra = st.text_input(
         "Doplňující kontext (volitelně)",
