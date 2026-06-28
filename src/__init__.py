@@ -1,4 +1,4 @@
-"""Data Analyst Claude - Inteligentní data analysis tool"""
+"""Marketing Dashboard - inteligentní nástroj pro analýzu marketingových dat"""
 
 from .analyzer import DataAnalyzer
 try:

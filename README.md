@@ -1,4 +1,4 @@
-# Data Analyst Claude
+# Marketing Dashboard
 
 Inteligentní nástroj pro analýzu dat s podporou Claude AI. Automaticky načítá CSV soubory, generuje statistické analýzy a vytváří insights.
 
@@ -14,8 +14,8 @@ Inteligentní nástroj pro analýzu dat s podporou Claude AI. Automaticky načí
 ## 🚀 Instalace
 
 ```bash
-git clone https://github.com/Traiva2911/Data-analyst-claude.git
-cd Data-analyst-claude
+git clone https://github.com/Traiva2911/marketing-dashboard.git
+cd marketing-dashboard
 pip install -r requirements.txt
 ```
 

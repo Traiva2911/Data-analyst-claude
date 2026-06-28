@@ -1,0 +1,8 @@
+# Streamlit theme — odvozeno z design systému "Data-Dense Dashboard".
+# Záměrně NEnastavujeme backgroundColor/textColor, aby fungoval automatický
+# light/dark režim. Barvy karet řešíme v CSS přes Streamlit proměnné
+# (var(--secondary-background-color)), takže se přizpůsobí oběma režimům.
+
+[theme]
+primaryColor = "#1E40AF"        # značková modrá — tlačítka, slidery, focus
+font = "sans serif"
