@@ -28,7 +28,7 @@ class DataAnalyzer:
         if df is not None:
             self.df = df.copy()
             self.file_path = Path(name) if name else Path("dataframe")
-            print(f"✓ Načteno {len(self.df)} řádků z DataFrame")
+            print(f"[OK] Načteno {len(self.df)} řádků z DataFrame")
         elif file_path is not None:
             self.file_path = Path(file_path)
             self.load_data()
@@ -53,7 +53,7 @@ class DataAnalyzer:
 
         try:
             self.df = pd.read_csv(self.file_path)
-            print(f"✓ Načteno {len(self.df)} řádků z {self.file_path.name}")
+            print(f"[OK] Načteno {len(self.df)} řádků z {self.file_path.name}")
         except Exception as e:
             raise ValueError(f"Chyba při načítání souboru: {str(e)}")
 
@@ -110,7 +110,7 @@ class DataAnalyzer:
         summary = self.generate_summary()
 
         print("\n" + "="*60)
-        print(f"📊 DATA ANALYSIS REPORT: {summary['file']}")
+        print(f"=== DATA ANALYSIS REPORT: {summary['file']}")
         print("="*60)
         print(f"Řádky: {summary['rows']} | Sloupce: {summary['columns']}")
         print(f"\nSloupce: {', '.join(summary['column_names'][:5])}")
@@ -131,7 +131,7 @@ class DataAnalyzer:
 
         outliers = self.detect_outliers()
         if outliers:
-            print(f"\n⚠️ Detekované outliers:")
+            print(f"\n[!] Detekované outliers:")
             for col, indices in outliers.items():
                 print(f"  {col}: {len(indices)} outliers (řádky: {indices[:5]}...)")
 

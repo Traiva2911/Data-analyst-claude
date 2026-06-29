@@ -139,30 +139,38 @@ def col_sum(df: pd.DataFrame, col):
 # TODO (Andrea): doplň cílové hodnoty pro tvůj trh a logiku porovnání.
 BENCHMARKS = {
     # "klíč": (cílová_hodnota, vyšší_je_lepší?)
-    "CTR": (None, True),              # %  – vyšší = lepší
-    "CPC": (None, False),            # Kč – nižší = lepší
-    "Konverzní poměr": (None, True),  # %  – vyšší = lepší
-    "Cena/konverze": (None, False),  # Kč – nižší = lepší
+    # Vzorové cíle pro český e-shop (Google Ads Search). Uprav podle svého
+    # oboru — uložené v kódu, ať se s tím dá hýbat na jednom místě.
+    "CTR": (2.0, True),               # %  – vyšší = lepší (CZ Search avg ~2 %)
+    "CPC": (10.0, False),            # Kč – nižší = lepší
+    "Konverzní poměr": (3.0, True),   # %  – vyšší = lepší
+    "Cena/konverze": (300.0, False),  # Kč – nižší = lepší
 }
+
+# KPI vyjádřená v procentech → rozdíl počítáme v procentních bodech;
+# ostatní (korunová) → procentuální rozdíl vůči cíli.
+_PERCENT_KPIS = {"CTR", "Konverzní poměr"}
 
 
 def kpi_delta(value: float, key: str):
     """Vrátí (delta_text, delta_color) pro st.metric, nebo (None, "off").
 
     delta_color: "normal" = zelená když roste, "inverse" = zelená když klesá.
-
-    TODO (Andrea): implementuj porovnání `value` s BENCHMARKS[key].
-    Rozmysli si:
-      - Jak velký rozdíl je "ještě v normě" vs. "fakt špatný"?
-      - U procent dává smysl rozdíl v procentních bodech (pb),
-        u korun spíš procentuální rozdíl nebo absolutní Kč.
-      - Když cíl není nastaven (None), vrať (None, "off") = žádný indikátor.
+    Text nese i číslo (pravidlo `color-not-only`: barva není jediný nositel
+    informace). Když cíl není nastaven, indikátor se nezobrazí.
     """
     target, higher_better = BENCHMARKS.get(key, (None, True))
-    if target is None:
+    if target is None or not target:
         return None, "off"
-    # ---- sem přijde tvých ~5-8 řádků logiky ----
-    return None, "off"
+    if key in _PERCENT_KPIS:
+        diff = value - target  # procentní body
+        text = f"{diff:+.2f} pb vs cíl".replace(".", ",")
+    else:
+        diff = 100 * (value - target) / target  # procentuální rozdíl
+        text = f"{diff:+.0f} % vs cíl"
+    # higher_better=True → kladná delta zelená ("normal");
+    # higher_better=False (CPC, cena/konverze) → kladná delta červená ("inverse").
+    return text, "normal" if higher_better else "inverse"
 # ==========================================================================
 
 
