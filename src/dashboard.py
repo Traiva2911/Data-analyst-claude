@@ -1,5 +1,5 @@
 """
-Interaktivní dashboard (Streamlit) pro Data Analyst Claude.
+Interaktivní rozhraní (Streamlit) projektu Marketing Dashboard.
 
 Spuštění z kořene projektu:
     streamlit run src/dashboard.py
@@ -127,30 +127,95 @@ def col_sum(df: pd.DataFrame, col):
     return pd.to_numeric(df[col], errors="coerce").sum()
 
 
+# === KONTRIBUCE: benchmarky KPI ===========================================
+# Cíl: u poměrových KPI (CTR, CPC, konverzní poměr, cena/konverze) ukázat,
+# jestli je hodnota DOBRÁ nebo ŠPATNÁ oproti tvému cílovému benchmarku.
+# Streamlit to vykreslí jako barevný delta indikátor pod číslem.
+#
+# Pravidlo z design systému `color-not-only`: barva nesmí být jediný nositel
+# informace — proto vracíme i textový popisek (např. "+0.4 pb vs cíl"),
+# ne jen zelenou/červenou šipku.
+#
+# TODO (Andrea): doplň cílové hodnoty pro tvůj trh a logiku porovnání.
+BENCHMARKS = {
+    # "klíč": (cílová_hodnota, vyšší_je_lepší?)
+    # Vzorové cíle pro český e-shop (Google Ads Search). Uprav podle svého
+    # oboru — uložené v kódu, ať se s tím dá hýbat na jednom místě.
+    "CTR": (2.0, True),               # %  – vyšší = lepší (CZ Search avg ~2 %)
+    "CPC": (10.0, False),            # Kč – nižší = lepší
+    "Konverzní poměr": (3.0, True),   # %  – vyšší = lepší
+    "Cena/konverze": (300.0, False),  # Kč – nižší = lepší
+}
+
+# KPI vyjádřená v procentech → rozdíl počítáme v procentních bodech;
+# ostatní (korunová) → procentuální rozdíl vůči cíli.
+_PERCENT_KPIS = {"CTR", "Konverzní poměr"}
+
+
+def kpi_delta(value: float, key: str):
+    """Vrátí (delta_text, delta_color) pro st.metric, nebo (None, "off").
+
+    delta_color: "normal" = zelená když roste, "inverse" = zelená když klesá.
+    Text nese i číslo (pravidlo `color-not-only`: barva není jediný nositel
+    informace). Když cíl není nastaven, indikátor se nezobrazí.
+    """
+    target, higher_better = BENCHMARKS.get(key, (None, True))
+    if target is None or not target:
+        return None, "off"
+    if key in _PERCENT_KPIS:
+        diff = value - target  # procentní body
+        text = f"{diff:+.2f} pb vs cíl".replace(".", ",")
+    else:
+        diff = 100 * (value - target) / target  # procentuální rozdíl
+        text = f"{diff:+.0f} % vs cíl"
+    # higher_better=True → kladná delta zelená ("normal");
+    # higher_better=False (CPC, cena/konverze) → kladná delta červená ("inverse").
+    return text, "normal" if higher_better else "inverse"
+# ==========================================================================
+
+
 def main():
     st.set_page_config(
-        page_title="Data Analyst Claude",
+        page_title="Marketing Dashboard",
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="auto",
     )
-    # Lehký vizuální styl (čistší vzhled, hezčí KPI karty). Když se Streamlit
-    # interně změní, styl se prostě neaplikuje — nic se nerozbije.
+    # Vizuální styl odvozený z design systému "Data-Dense Dashboard".
+    # Barvy karet jdou přes Streamlit CSS proměnné, takže fungují v light i dark
+    # režimu (žádné natvrdo zadané hex). Když se Streamlit interně změní, styl se
+    # prostě neaplikuje — nic se nerozbije.
     st.markdown(
         """
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600&family=Fira+Sans:wght@400;500;600;700&display=swap');
+          html, body, [class*="css"] {font-family: 'Fira Sans', sans-serif;}
+
           #MainMenu, footer {visibility: hidden;}
           .block-container {padding-top: 2.5rem; padding-bottom: 3rem; max-width: 1300px;}
+
+          /* KPI karty — pozadí z theme tokenu => správně v light i dark */
           div[data-testid="stMetric"] {
-            background: #f7f9fc; border: 1px solid #e6e9ef;
-            border-radius: 12px; padding: 12px 16px;
+            background: var(--secondary-background-color);
+            border: 1px solid rgba(128, 128, 128, .18);
+            border-radius: 12px; padding: 14px 18px;
+            transition: border-color .2s ease, box-shadow .2s ease;
+          }
+          div[data-testid="stMetric"]:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 10px rgba(30, 64, 175, .08);
           }
           div[data-testid="stMetricLabel"] p {opacity: .7; font-size: .85rem;}
+          /* Tabulkové číslice => hodnoty "neskáčou", lepší čtení dat */
+          div[data-testid="stMetricValue"] {
+            font-family: 'Fira Code', monospace;
+            font-variant-numeric: tabular-nums;
+          }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.title("📊 Data Analyst Claude")
+    st.title("📊 Marketing Dashboard")
     st.caption("Analýza dat · marketingová KPI · AI insighty od Clauda")
 
     check_password()
@@ -229,13 +294,21 @@ def main():
 
         row2 = st.columns(4)
         if total_clicks and total_impr:
-            row2[0].metric("CTR", fmt2(100 * total_clicks / total_impr, " %"))
+            ctr = 100 * total_clicks / total_impr
+            d, dc = kpi_delta(ctr, "CTR")
+            row2[0].metric("CTR", fmt2(ctr, " %"), delta=d, delta_color=dc)
         if total_cost is not None and total_clicks:
-            row2[1].metric("Prům. CPC", fmt2(total_cost / total_clicks, " Kč"))
+            cpc = total_cost / total_clicks
+            d, dc = kpi_delta(cpc, "CPC")
+            row2[1].metric("Prům. CPC", fmt2(cpc, " Kč"), delta=d, delta_color=dc)
         if total_conv and total_clicks:
-            row2[2].metric("Konverzní poměr", fmt2(100 * total_conv / total_clicks, " %"))
+            cr = 100 * total_conv / total_clicks
+            d, dc = kpi_delta(cr, "Konverzní poměr")
+            row2[2].metric("Konverzní poměr", fmt2(cr, " %"), delta=d, delta_color=dc)
         if total_cost is not None and total_conv:
-            row2[3].metric("Cena/konverze", fmt2(total_cost / total_conv, " Kč"))
+            cpa = total_cost / total_conv
+            d, dc = kpi_delta(cpa, "Cena/konverze")
+            row2[3].metric("Cena/konverze", fmt2(cpa, " Kč"), delta=d, delta_color=dc)
 
     # --- Výkon podle kampaní ---
     if col_campaign:
