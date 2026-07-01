@@ -46,6 +46,43 @@ pod sebe a postranní panel se schová do menu.
 
 Po každém pushi do zvolené větve se aplikace **automaticky znovu nasadí**.
 
+## 💰 Náklady a časová náročnost
+
+> Orientační hodnoty pro plánování (kurz ~24 Kč/USD). Skutečnost závisí na
+> objemu dat, četnosti AI insightů a zvolené variantě hostingu.
+
+### Nákladové položky (provozní, měsíčně)
+
+| Položka | Popis | Orientační náklad |
+|---------|-------|-------------------|
+| **Hosting** | kde web běží | **0 Kč** (free tiery) až **~350 Kč/měs** (Azure App Service B1) |
+| **Claude API (Anthropic)** | AI insighty, platba za použití | **jednotky Kč** / insight → **desítky–nižší stovky Kč/měs** |
+| **Automatická data (Zapier)** | tahání z Google Ads (volitelné) | **0 Kč** (free plán) až **od ~500 Kč/měs** (placený) |
+| **Vlastní doména** (volitelné) | adresa místo `*.streamlit.app` | **~200–400 Kč/rok** (.cz) |
+| **SSL / https** | zabezpečení spojení | **0 Kč** (v ceně hostingu) |
+
+> 💡 Claude API i Zapier se platí **navíc k hostingu**, nezávisle na variantě.
+> Levnější model (Sonnet/Haiku) místo Opusu náklady na AI výrazně sníží.
+
+### Orientační náklad podle varianty hostingu
+
+| Varianta hostingu | Náklad/měs |
+|-------------------|------------|
+| Streamlit Community Cloud | **0 Kč** |
+| Render / Hugging Face Spaces | **0 Kč** (s uspáváním) až **~180 Kč** (always-on) |
+| Azure Container Apps | **~0–200 Kč** (dle provozu) |
+| Azure App Service (B1) | **~300–350 Kč** |
+| Azure Static Web Apps (React varianta) | **0 Kč** (free tier) |
+
+### Časová náročnost
+
+| Fáze | Náročnost |
+|------|-----------|
+| Vývoj dashboardu (Python/Streamlit) | **hotovo** ✅ |
+| Implementace / nasazení na web | **15 min – 1 hod** (dle varianty) |
+| Automatické tahání dat z Google Ads (Zapier → tabulka → dashboard) | **~0,5–1 den** vývoje |
+| Přestavba do React + Azure Static Web Apps (jako `panopro-advisor`) | **~3–6 člověkodnů** vývoje |
+
 ## Alternativy
 
 Stejný dashboard zvládnou i **Hugging Face Spaces**, **Render** nebo **Railway** —
