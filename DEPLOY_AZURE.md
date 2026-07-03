@@ -39,6 +39,21 @@ v `main` nasadí sama (přes GitHub Actions).
    | `ANTHROPIC_API_KEY` | tvůj klíč `sk-ant-...` |
    | `APP_PASSWORD` | zvolené heslo (volitelné) |
    | `WEBSITES_PORT` | `8000` |
+
+   Volitelně, pro zdroj dat **Google Ads (živě)** (stejné hodnoty jako
+   v `google-ads.yaml`, viz README.md):
+   | Name | Value |
+   |------|-------|
+   | `GOOGLE_ADS_DEVELOPER_TOKEN` | developer token |
+   | `GOOGLE_ADS_CLIENT_ID` | OAuth2 client_id |
+   | `GOOGLE_ADS_CLIENT_SECRET` | OAuth2 client_secret |
+   | `GOOGLE_ADS_REFRESH_TOKEN` | OAuth2 refresh_token |
+   | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | ID správcovského (MCC) účtu |
+   | `GOOGLE_ADS_CUSTOMER_ID` | ID účtu *panopro* |
+
+   > 💡 Tyhle názvy odpovídají standardu knihovny `google-ads` — jako
+   > obyčejné proměnné prostředí (na rozdíl od Streamlit Cloud Secrets)
+   > je konektor najde automaticky, žádné další nastavení není potřeba.
 3. **Save** (appka se restartuje).
 
 ## 4. Propoj s GitHubem (automatické nasazení)
@@ -67,11 +82,11 @@ v `main` nasadí sama (přes GitHub Actions).
 |---------|-------|-------------------|
 | **Hosting** | kde web běží | **0 Kč** (free tiery) až **~350 Kč/měs** (Azure App Service B1) |
 | **Claude API (Anthropic)** | AI insighty, platba za použití | **jednotky Kč** / insight → **desítky–nižší stovky Kč/měs** |
-| **Automatická data (Zapier)** | tahání z Google Ads (volitelné) | **0 Kč** (free plán) až **od ~500 Kč/měs** (placený) |
+| **Živá data z Google Ads** | napojení přímo v dashboardu (`src/gads.py`) | **0 Kč** (v ceně Google Ads API, žádná další služba není potřeba) |
 | **Vlastní doména** (volitelné) | adresa místo `*.azurewebsites.net` | **~200–400 Kč/rok** (.cz) |
 | **SSL / https** | zabezpečení spojení | **0 Kč** (v ceně hostingu) |
 
-> 💡 Claude API i Zapier se platí **navíc k hostingu**, nezávisle na variantě.
+> 💡 Claude API se platí **navíc k hostingu**, nezávisle na variantě.
 > Levnější model (Sonnet/Haiku) místo Opusu náklady na AI výrazně sníží.
 
 ### Orientační náklad podle varianty hostingu
@@ -89,8 +104,8 @@ v `main` nasadí sama (přes GitHub Actions).
 | Fáze | Náročnost |
 |------|-----------|
 | Vývoj dashboardu (Python/Streamlit) | **hotovo** ✅ |
+| Živé napojení na Google Ads API přímo v dashboardu | **hotovo** ✅ (zdroj dat „Google Ads (živě)“) |
 | Implementace / nasazení na web | **15 min – 1 hod** (dle varianty) |
-| Automatické tahání dat z Google Ads (Zapier → tabulka → dashboard) | **~0,5–1 den** vývoje |
 | Přestavba do React + Azure Static Web Apps (jako `panopro-advisor`) | **~3–6 člověkodnů** vývoje |
 
 ---
