@@ -221,7 +221,7 @@ Model `claude-opus-4-8` (viz `src/ai.py`) — oficiální ceny (červenec 2026):
 | Streamlit Community Cloud: 7 dní bez návštěvy | Appka „usne", první návštěva čeká ~30–60 s na probuzení | Přejít na Azure App Service s Always On, nebo nechat (jen UX) | 0 Kč, nebo ~300 Kč/měs |
 | Azure App Service F1 (Free): 60 CPU minut/den | Appka po vyčerpání limitu přestane do půlnoci (UTC) reagovat | Upgrade na B1 (Basic) | ~300 Kč/měsíc |
 | Zapier Free: 100 tasků/měsíc (při automatickém tahání dat) | Automatický tok dat z Google Ads se zastaví | Upgrade na Starter ($29.99/měs) | ~700 Kč/měsíc |
-| Vysoký objem AI insightů | Anthropic účet narazi na rate limit tieru, nebo faktura roste | Kratší souhrn dat, méně časté generování, levnější model (Sonnet/Haiku) | závisí na objemu |
+| Vysoký objem AI insightů | Anthropic účet narazí na rate limit tieru, nebo faktura roste | Kratší souhrn dat, méně časté generování, levnější model (Sonnet/Haiku) | závisí na objemu |
 
 ## 📁 Struktura projektu
 

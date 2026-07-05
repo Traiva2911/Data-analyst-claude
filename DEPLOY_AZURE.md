@@ -74,6 +74,28 @@ v `main` nasadí sama (přes GitHub Actions).
 > 💡 Claude API i Zapier se platí **navíc k hostingu**, nezávisle na variantě.
 > Levnější model (Sonnet/Haiku) místo Opusu náklady na AI výrazně sníží.
 
+### Kalkulace tokenů Anthropic API
+
+Model `claude-opus-4-8` (viz `src/ai.py`) — oficiální ceny (červenec 2026):
+
+| Parametr | Hodnota |
+|----------|---------|
+| Input | $5 / 1M tokenů |
+| Output | $25 / 1M tokenů |
+| Max output tokenů | 4 096 (nastaveno v `src/ai.py`) |
+| Adaptivní thinking | zapnuto — přemýšlecí tokeny se počítají jako output |
+| Průměrný vstup (souhrn dat v JSON) | ~800–1 500 tokenů (dle počtu sloupců a kategorií) |
+
+**Příklad:** 50 vygenerování AI insightů/měsíc (běžné použití jednoho člověka):
+
+- Input: 50 × 1 200 = 60 000 tokenů → $0,30 (~7 Kč)
+- Output: 50 × 1 500 (odhad vč. thinking) = 75 000 tokenů → $1,88 (~45 Kč)
+- **Celkem: ~52 Kč/měsíc**
+
+> Při intenzivnějším použití (300 generování/měsíc, víc kampaní/uživatelů)
+> → ~310 Kč/měsíc. Toto číslo je součástí řádku „Claude API (Anthropic)"
+> v tabulce nákladových položek výše.
+
 ### Orientační náklad podle varianty hostingu
 
 | Varianta hostingu | Náklad/měs |
@@ -92,6 +114,15 @@ v `main` nasadí sama (přes GitHub Actions).
 | Implementace / nasazení na web | **15 min – 1 hod** (dle varianty) |
 | Automatické tahání dat z Google Ads (Zapier → tabulka → dashboard) | **~0,5–1 den** vývoje |
 | Přestavba do React + Azure Static Web Apps (jako `panopro-advisor`) | **~3–6 člověkodnů** vývoje |
+
+### Škálovací prahy
+
+| Práh | Co se stane | Řešení | Náklad navíc |
+|------|-------------|--------|--------------|
+| Streamlit Community Cloud: 7 dní bez návštěvy | Appka „usne", první návštěva čeká ~30–60 s na probuzení | Přejít na Azure App Service s Always On, nebo nechat (jen UX) | 0 Kč, nebo ~300 Kč/měs |
+| Azure App Service F1 (Free): 60 CPU minut/den | Appka po vyčerpání limitu přestane do půlnoci (UTC) reagovat | Upgrade na B1 (Basic) | ~300 Kč/měsíc |
+| Zapier Free: 100 tasků/měsíc (při automatickém tahání dat) | Automatický tok dat z Google Ads se zastaví | Upgrade na Starter ($29.99/měs) | ~700 Kč/měsíc |
+| Vysoký objem AI insightů | Anthropic účet narazí na rate limit tieru, nebo faktura roste | Kratší souhrn dat, méně časté generování, levnější model (Sonnet/Haiku) | závisí na objemu |
 
 ---
 
