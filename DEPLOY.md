@@ -6,7 +6,7 @@ i mobilu (responzivní).
 
 ## Předpoklady
 
-- Kód na GitHubu (✓ repo `Traiva2911/Data-analyst-claude`).
+- Kód na GitHubu (✓ repo `A-Matiska/Data-analyst-claude`).
 - Účet na <https://streamlit.io/cloud> (přihlášení přes GitHub, zdarma).
 - Anthropic API klíč (pro AI insighty).
 
@@ -16,7 +16,7 @@ i mobilu (responzivní).
    k repozitáři).
 2. Klikni **Create app → Deploy a public app from GitHub**.
 3. Vyplň:
-   - **Repository:** `Traiva2911/Data-analyst-claude`
+   - **Repository:** `A-Matiska/Data-analyst-claude`
    - **Branch:** `claude/beautiful-meitner-538oe8` (nebo `main` po sloučení)
    - **Main file path:** `src/dashboard.py`
 4. Rozbal **Advanced settings → Secrets** a vlož (formát TOML):

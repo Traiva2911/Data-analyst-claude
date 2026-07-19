@@ -14,7 +14,7 @@ Inteligentní nástroj pro analýzu dat s podporou Claude AI. Automaticky načí
 ## 🚀 Instalace
 
 ```bash
-git clone https://github.com/Traiva2911/Data-analyst-claude.git
+git clone https://github.com/A-Matiska/Data-analyst-claude.git
 cd Data-analyst-claude
 pip install -r requirements.txt
 ```
@@ -267,7 +267,7 @@ MIT License — viz LICENSE soubor
 
 ## 👤 Autor
 
-Andrea Matis (@Traiva2911)
+Andrea Matis (@A-Matiska)
 
 ---
 
