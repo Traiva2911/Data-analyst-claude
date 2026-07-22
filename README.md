@@ -221,7 +221,13 @@ Model `claude-opus-4-8` (viz `src/ai.py`) — oficiální ceny (červenec 2026):
 | Streamlit Community Cloud: 7 dní bez návštěvy | Appka „usne", první návštěva čeká ~30–60 s na probuzení | Přejít na Azure App Service s Always On, nebo nechat (jen UX) | 0 Kč, nebo ~300 Kč/měs |
 | Azure App Service F1 (Free): 60 CPU minut/den | Appka po vyčerpání limitu přestane do půlnoci (UTC) reagovat | Upgrade na B1 (Basic) | ~300 Kč/měsíc |
 | Zapier Free: 100 tasků/měsíc (při automatickém tahání dat) | Automatický tok dat z Google Ads se zastaví | Upgrade na Starter ($29.99/měs) | ~700 Kč/měsíc |
-| Vysoký objem AI insightů | Anthropic účet narazi na rate limit tieru, nebo faktura roste | Kratší souhrn dat, méně časté generování, levnější model (Sonnet/Haiku) | závisí na objemu |
+| Vysoký objem AI insightů | Anthropic účet narazí na rate limit tieru, nebo faktura roste | Kratší souhrn dat, méně časté generování, levnější model (Sonnet/Haiku) | závisí na objemu |
+
+### Když něco nesedí
+
+- **AI insighty nefungují**: chybí nebo je neplatný `ANTHROPIC_API_KEY` v `.env`.
+- **Napojení na Google Ads selže**: zkontroluj `google-ads.yaml` (`developer_token`, `client_id`, `client_secret`, `refresh_token`) a že `login_customer_id` / `customer_id` jsou bez pomlek.
+- **`DEVELOPER_TOKEN_NOT_APPROVED`**: Google Ads developer token ještě nemá schválený Basic access — použij testovací účet, nebo počkej na schválení.
 
 ## 📁 Struktura projektu
 
